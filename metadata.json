@@ -1,0 +1,6 @@
+{
+  "name": "Bangladesh News Directory & Live Portal",
+  "description": "Comprehensive directory of Bangladesh newspapers, regional news outlets across 8 divisions, online portals, and real-time breaking news updates.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
