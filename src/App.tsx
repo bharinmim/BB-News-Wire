@@ -11,6 +11,8 @@ import { OUTLETS } from './data/bangladeshOutlets';
 import { INITIAL_NEWS_ARTICLES, WIRE_UPDATES_POOL } from './data/liveNewsFeed';
 import { DivisionId, NewsArticle } from './types/news';
 import { playChime } from './utils/audioAlert';
+import { analytics } from './firebase';
+import { logEvent } from 'firebase/analytics';
 
 const STORAGE_SAVED_KEY = 'bd_newswire_saved_outlets';
 const STORAGE_LANG_KEY = 'bd_newswire_pref_lang';
@@ -62,12 +64,32 @@ export default function App() {
   // Toast notification for new alert
   const [latestAlertToast, setLatestAlertToast] = React.useState<NewsArticle | null>(null);
 
+  // Initial Firebase Analytics pageview
+  React.useEffect(() => {
+    if (analytics) {
+      try {
+        logEvent(analytics, 'page_view', {
+          page_title: 'BD NewsWire Portal',
+          page_location: window.location.href
+        });
+      } catch {
+        // Safe fallback
+      }
+    }
+  }, []);
+
   // Save language to localStorage
   const handleToggleLang = () => {
     setLang((prev) => {
       const next = prev === 'en' ? 'bn' : 'en';
       try {
         localStorage.setItem(STORAGE_LANG_KEY, next);
+        if (analytics) {
+          logEvent(analytics, 'select_content', {
+            content_type: 'language',
+            item_id: next
+          });
+        }
       } catch {
         // Safe fallback
       }
@@ -83,11 +105,31 @@ export default function App() {
         : [...prev, outletId];
       try {
         localStorage.setItem(STORAGE_SAVED_KEY, JSON.stringify(next));
+        if (analytics) {
+          logEvent(analytics, 'select_content', {
+            content_type: 'outlet_bookmark',
+            item_id: outletId
+          });
+        }
       } catch {
         // Safe fallback
       }
       return next;
     });
+  };
+
+  const handleOpenArticle = (article: NewsArticle) => {
+    setActiveModalArticle(article);
+    if (analytics) {
+      try {
+        logEvent(analytics, 'select_content', {
+          content_type: 'news_article',
+          item_id: article.id
+        });
+      } catch {
+        // Safe fallback
+      }
+    }
   };
 
   // Wire new story injection
@@ -161,7 +203,7 @@ export default function App() {
         onSelectSection={handleSelectSection}
         savedCount={savedOutletIds.length}
         breakingNews={breakingNews}
-        onOpenArticle={setActiveModalArticle}
+        onOpenArticle={handleOpenArticle}
         soundEnabled={soundEnabled}
         onToggleSound={() => setSoundEnabled((prev) => !prev)}
       />
@@ -179,7 +221,7 @@ export default function App() {
         <EditorialLeadSection
           lang={lang}
           articles={articles}
-          onOpenArticle={setActiveModalArticle}
+          onOpenArticle={handleOpenArticle}
           onExploreDivisions={() => handleSelectSection('regional')}
         />
 
@@ -195,7 +237,7 @@ export default function App() {
             injectNewWireStory();
           }}
           onSimulateIncomingWire={injectNewWireStory}
-          onOpenArticle={setActiveModalArticle}
+          onOpenArticle={handleOpenArticle}
         />
 
         {/* Regional Press Section: Categorized by All 8 Administrative Divisions */}
@@ -207,7 +249,7 @@ export default function App() {
           onSelectDivision={setSelectedDivision}
           savedOutletIds={savedOutletIds}
           onToggleSaveOutlet={handleToggleSaveOutlet}
-          onOpenArticle={setActiveModalArticle}
+          onOpenArticle={handleOpenArticle}
         />
 
         {/* Full Media Outlet Directory (w3newspapers style) */}
